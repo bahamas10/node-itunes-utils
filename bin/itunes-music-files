@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+/**
+ * CLI utility to list music files in an iTunes Library
+ *
+ * Author: Dave Eddy <dave@daveeddy.com>
+ * Date: January 28, 2017
+ * License: MIT
+ */
+
+var itunesUtils = require('../lib/itunes');
+var getopt = require('posix-getopt');
+
+var package = require('../package.json');
+
+function usage() {
+    return [
+        'Usage: itunes-music-files [-l library.xml] [opts]',
+        '',
+        'Print iTunes music filenames',
+        '',
+        'Options',
+        '  -0, --nul              separate filenames by nulbyte (default is newline)',
+        '  -c, --checked          only show files checked in iTunes',
+        '  -h, --help             print this message and exit',
+        '  -l, --library <file>   iTunes Library XML file to use, otherwise default location',
+        '  -r, --relative         print filenames relative to music library, defaults to false',
+        '  -u, --unchecked        only show files unchecked in iTunes',
+        '  -U, --updates          check for available updates on npm',
+        '  -v, --version          print version number and exit',
+    ].join('\n');
+}
+
+// command line arguments
+var options = [
+    '0(nul)',
+    'c(checked)',
+    'h(help)',
+    'l:(library)',
+    'r(relative)',
+    'u(unchecked)',
+    'U(updates)',
+    'v(version)'
+].join('');
+var parser = new getopt.BasicParser(options, process.argv);
+
+var constructorOpts = {};
+var musicFilesOpts = {
+    absolutePath: true
+};
+var joinChar = '\n';
+var option;
+while ((option = parser.getopt())) {
+    switch (option.option) {
+    case '0':
+        joinChar = '\0';
+        break;
+    case 'c':
+        musicFilesOpts.checked = true;
+        break;
+    case 'h':
+        console.log(usage());
+        process.exit(0);
+    case 'l':
+        constructorOpts.libraryFile = option.optarg;
+        break;
+    case 'r':
+        musicFilesOpts.absolutePath = false;
+        break;
+    case 'u':
+        musicFilesOpts.unchecked = true;
+        break;
+    case 'U':
+        require('latest').checkupdate(package, function(ret, msg) {
+          console.log(msg);
+          process.exit(ret);
+        });
+        return;
+    case 'v':
+        console.log(package.version);
+        process.exit(0);
+    default:
+        console.error(usage());
+        process.exit(1);
+    }
+}
+var args = process.argv.slice(parser.optind());
+
+var itunes = new itunesUtils.iTunesLibrary(constructorOpts);
+var files = itunes.musicFiles(musicFilesOpts);
+
+console.log(files.sort().join(joinChar));

@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+/**
+ * Find files in an iTunes directory not in the library
+ *
+ * Author: Dave Eddy <dave@daveeddy.com>
+ * Date: January 28, 2017
+ * License: MIT
+ */
+
+var itunesUtils = require('../lib/itunes');
+var getopt = require('posix-getopt');
+var findit = require('findit');
+
+var package = require('../package.json');
+
+function usage() {
+    return [
+        'Usage: itunes-extraneous [-l library.xml]',
+        '',
+        'Find files in an iTunes directory not in the library',
+        '',
+        'Options',
+        '  -0, --nul              separate filenames by nulbyte (default is newline)',
+        '  -h, --help             print this message and exit',
+        '  -l, --library <file>   iTunes Library XML file to use, otherwise default location',
+        '  -r, --relative         print filenames relative to music library, defaults to false',
+        '  -U, --updates          check for available updates on npm',
+        '  -v, --version          print version number and exit',
+    ].join('\n');
+}
+
+// command line arguments
+var options = [
+    '0(nul)',
+    'h(help)',
+    'l:(library)',
+    'r(relative)',
+    'U(updates)',
+    'v(version)'
+].join('');
+var parser = new getopt.BasicParser(options, process.argv);
+
+var constructorOpts = {};
+var musicFilesOpts = {
+    absolutePath: true
+};
+var relative = false;
+var joinChar = '\n';
+var option;
+while ((option = parser.getopt())) {
+    switch (option.option) {
+    case '0':
+        joinChar = '\0';
+        break;
+    case 'h':
+        console.log(usage());
+        process.exit(0);
+    case 'l':
+        constructorOpts.libraryFile = option.optarg;
+        break;
+    case 'r':
+        relative = true;
+        break;
+    case 'U':
+        require('latest').checkupdate(package, function(ret, msg) {
+          console.log(msg);
+          process.exit(ret);
+        });
+        return;
+    case 'v':
+        console.log(package.version);
+        process.exit(0);
+    default:
+        console.error(usage());
+        process.exit(1);
+    }
+}
+var args = process.argv.slice(parser.optind());
+
+var itunes = new itunesUtils.iTunesLibrary(constructorOpts);
+var tracks = itunes.musicFiles(musicFilesOpts);
+var tracksLowerCase = tracks.map(function (track) {
+    return track.toLowerCase();
+});
+
+var finder = findit(itunes.iTunesMusicDir);
+
+var found = [];
+var foundLowerCase = [];
+finder.on('file', function (file) {
+    found.push(file);
+    foundLowerCase.push(file.toLowerCase());
+});
+
+var diff = [];
+finder.on('end', function () {
+    foundLowerCase.forEach(function (localFileLowerCase, i) {
+        var localFile = found[i];
+
+        if (tracksLowerCase.indexOf(localFileLowerCase) < 0) {
+            if (relative) {
+                localFile = localFile.substr(itunes.iTunesMusicDir.length + 1);
+            }
+            diff.push(localFile);
+        }
+    });
+
+    if (diff.length > 0)
+        console.log(diff.sort().join(joinChar));
+});

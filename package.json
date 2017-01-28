@@ -1,0 +1,32 @@
+{
+    "name": "itunes-utils",
+    "description": "Various utilities for interfacing with iTunes libraries",
+    "version": "0.0.0",
+    "author": "Dave Eddy <dave@daveeddy.com> (http://www.daveeddy.com)",
+    "contributors": [],
+    "main": "./lib/itunes.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/bahamas10/node-itunes-utils.git"
+    },
+    "bin": {
+        "itunes-extraneous": "./bin/itunes-extraneous",
+        "itunes-music-files": "./bin/itunes-music-files"
+    },
+    "scripts": {
+        "test": "for f in tests/*.js; do echo \"$f\"; node \"$f\" || exit 1; done; echo 'Passed!'"
+    },
+    "dependencies": {
+        "findit": "^2.0.0",
+        "latest": "^0.2.0",
+        "plist": "^2.0.1",
+        "posix-getopt": "^1.2.0"
+    },
+    "devDependencies": {},
+    "optionalDependencies": {},
+    "engines": {
+        "node": "*"
+    },
+    "engine": "node >= 0.8.0",
+    "keywords": []
+}
